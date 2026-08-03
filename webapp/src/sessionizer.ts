@@ -92,7 +92,7 @@ export class Sessionizer {
     current: Sample,
   ): SessionRow {
     const row = this.db
-      .query<SessionRow, [string, string, number, number, number, number, number, number]>(
+      .query<SessionRow, [string, string, number, number, number, number, number, number, number]>(
         `INSERT INTO sessions (
            board_chip_id, kind, started_at, start_soc, end_soc,
            start_used_mah, start_regen_mah, last_sample_ts, last_active_ts

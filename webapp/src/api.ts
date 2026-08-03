@@ -104,6 +104,11 @@ export function handleApi(
     return Response.json({ ...sess, samples });
   }
 
+  m = p.match(/^\/api\/boards\/([^/]+)\/health$/);
+  if (m && req.method === "GET") {
+    return boardHealth(db, m[1]);
+  }
+
   return undefined;
 }
 
@@ -129,4 +134,71 @@ async function patchBoard(
     return Response.json({ error: "unknown board" }, { status: 404 });
   }
   return Response.json({ ok: true });
+}
+
+function boardHealth(db: Database, chipId: string): Response {
+  const chargeSessions = db
+    .query(
+      `SELECT id, ended_at, start_soc, end_soc, mah_delta
+       FROM sessions
+       WHERE board_chip_id = ? AND kind = 'charge' AND ended_at IS NOT NULL
+         AND end_soc - start_soc >= 50
+       ORDER BY ended_at`,
+    )
+    .all(chipId) as any[];
+  const estimates = chargeSessions.map((s) => ({
+    session_id: s.id,
+    ended_at: s.ended_at,
+    est_mah: Math.round((s.mah_delta / (s.end_soc - s.start_soc)) * 100),
+  }));
+  const sorted = estimates.map((e) => e.est_mah).sort((a, b) => a - b);
+  const capacityEst = sorted.length
+    ? sorted.length % 2
+      ? sorted[(sorted.length - 1) / 2]
+      : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+    : null;
+
+  const latest = db
+    .query(
+      "SELECT used_mah, regen_mah FROM samples WHERE board_chip_id = ? ORDER BY ts DESC LIMIT 1",
+    )
+    .get(chipId) as any;
+  const regenRatio =
+    latest && latest.used_mah > 0 ? latest.regen_mah / latest.used_mah : null;
+  const cycleCount =
+    latest && capacityEst ? latest.used_mah / capacityEst : null;
+
+  const temps = db
+    .query(
+      `SELECT MIN(min_temp_c) AS tmin, MAX(max_temp_c) AS tmax
+       FROM sessions WHERE board_chip_id = ?`,
+    )
+    .get(chipId) as any;
+
+  const spreadRows = db
+    .query(
+      `SELECT date(ts / 1000, 'unixepoch') AS day, cells_mv
+       FROM samples WHERE board_chip_id = ? ORDER BY ts`,
+    )
+    .all(chipId) as any[];
+  const byDay = new Map<string, number>();
+  for (const r of spreadRows) {
+    const cells = (JSON.parse(r.cells_mv) as number[]).filter((c) => c > 0);
+    if (cells.length === 0) continue;
+    const spread = Math.max(...cells) - Math.min(...cells);
+    byDay.set(r.day, Math.max(byDay.get(r.day) ?? 0, spread));
+  }
+
+  return Response.json({
+    capacity_estimates: estimates,
+    capacity_est_mah: capacityEst,
+    regen_ratio: regenRatio,
+    cycle_count: cycleCount,
+    temp_min_c: temps?.tmin ?? null,
+    temp_max_c: temps?.tmax ?? null,
+    cell_spread_daily: [...byDay.entries()].map(([day, max_spread_mv]) => ({
+      day,
+      max_spread_mv,
+    })),
+  });
 }

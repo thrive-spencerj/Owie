@@ -82,8 +82,10 @@ String getTempString() {
   temps.reserve(256);
   temps.concat("<tr>");
   for (int i = 0; i < 5; i++) {
+    // BMS reports Celsius; display in Fahrenheit.
+    const int fahrenheit = thermTemps[i] * 9 / 5 + 32;
     temps.concat("<td>");
-    temps.concat(thermTemps[i]);
+    temps.concat(fahrenheit);
     temps.concat("</td>");
   }
   temps.concat("<tr>");

@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- The HTML markup is based on the main page of Tasmota -->
 
 <head>
     <meta charset="utf-8">
@@ -9,13 +8,12 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
-    <div style="text-align:left;display:inline-block;color:#eaeaea;min-width:340px;">
-        <div id="statusHeader" style="text-align:center;color:#eaeaea;margin-bottom:10px;">
-            <h2>Update Failed: %UPDATE_ERROR%</h2>
-            <p>
-                <button onclick="history.back()">Back</button>
-            </p>
+<body class="owie-status">
+    <div class="shell">
+        <div class="panel center">
+            <h2 class="status-title fail">Update failed</h2>
+            <p class="note">%UPDATE_ERROR%</p>
+            <button class="btn" onclick="history.back()">Back</button>
         </div>
     </div>
 </body>

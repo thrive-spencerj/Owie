@@ -610,6 +610,13 @@ body.owie-status {
     font-variant-numeric: tabular-nums;
 }
 
+/* --- update / OTA flow --- */
+.owie-status .center { text-align: center; }
+.owie-status .status-title { font-size: 1.3rem; font-weight: 700; margin: 0 0 10px; }
+.owie-status .status-title.fail { color: var(--crit); }
+.owie-status .status-title.ok { color: var(--good); }
+.owie-status .panel.center .btn { margin-top: 14px; }
+
 @media (prefers-reduced-motion: reduce) {
     .owie-status .pill.live::before { animation: none; }
     .owie-status .meter-fill { transition: none; }

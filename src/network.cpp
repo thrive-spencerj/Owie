@@ -8,6 +8,7 @@
 
 #include "ArduinoJson.h"
 #include "async_ota.h"
+#include "battery_profile.h"
 #include "bms_relay.h"
 #include "data.h"
 #include "settings.h"
@@ -57,6 +58,65 @@ String renderPacketStatsTable() {
                     .total_packet_checksum_mismatches);
   result.concat(PSTR("</td></tr></table>"));
   return result;
+}
+
+String batteryProfileOptions() {
+  String opts;
+  opts.reserve(256);
+  for (uint32_t i = 0; i < BATTERY_PROFILE_COUNT; i++) {
+    opts.concat("<option value='");
+    opts.concat(i);
+    opts.concat("'");
+    if (i == Settings->battery_profile_id) {
+      opts.concat(" selected");
+    }
+    opts.concat(">");
+    opts.concat(BATTERY_PROFILES[i].label);
+    opts.concat("</option>");
+  }
+  return opts;
+}
+
+String batteryReportRows() {
+  const BatteryProfile &prof = getBatteryProfile(Settings->battery_profile_id);
+  if (prof.capacityMah <= 0) {
+    return String("");
+  }
+  BatteryFuelGauge &gauge = relay->getBatteryFuelGauge();
+  String out;
+  out.reserve(384);
+  out.concat("<div class=\"kv\" style=\"margin-top:12px\">");
+  out.concat("<div class=\"row\"><span class=\"kk\">Capacity</span>"
+             "<span class=\"vv\">");
+  out.concat(prof.capacityMah);
+  out.concat("<span class=\"unit\"> mAh</span></span></div>");
+
+  out.concat("<div class=\"row\"><span class=\"kk\">Remaining</span>"
+             "<span class=\"vv\">");
+  const int32_t remaining = gauge.getRemainingMah(prof.capacityMah);
+  if (remaining < 0) {
+    out.concat("&mdash;");
+  } else {
+    out.concat(remaining);
+    out.concat("<span class=\"unit\"> mAh</span>");
+  }
+  out.concat("</span></div>");
+
+  out.concat("<div class=\"row\"><span class=\"kk\">State of health</span>"
+             "<span class=\"vv\">");
+  const int32_t soh = gauge.getStateOfHealthPercent(prof.capacityMah);
+  if (soh == -1) {
+    out.concat("learning&hellip;");
+  } else if (soh < 0) {
+    out.concat("&mdash;");
+  } else {
+    out.concat(soh);
+    out.concat("<span class=\"unit\">&#37;</span>");  // &#37; == literal %
+  }
+  out.concat("</span></div>");
+
+  out.concat("</div>");
+  return out;
 }
 
 String uptimeString() {
@@ -181,6 +241,10 @@ String templateProcessor(const String &var) {
     return Settings->locking_enabled ? "1" : "";
   } else if (var == "PACKET_STATS_TABLE") {
     return renderPacketStatsTable();
+  } else if (var == "BATTERY_PROFILE_OPTIONS") {
+    return batteryProfileOptions();
+  } else if (var == "BATTERY_REPORT_ROWS") {
+    return batteryReportRows();
   } else if (var == "CELL_VOLTAGE_TABLE") {
     const uint16_t *cellMillivolts = relay->getCellMillivolts();
     String out;
@@ -301,6 +365,13 @@ void setupWebServer(BmsRelay *bmsRelay) {
         } else if (request->getParam("reset_settings", true) != nullptr) {
           Settings->battery_state = BatteryStateMsg_init_default;
           saveSettings();
+        } else if (request->getParam("battery_profile", true) != nullptr) {
+          uint32_t id =
+              request->getParam("battery_profile", true)->value().toInt();
+          if (id < BATTERY_PROFILE_COUNT) {
+            Settings->battery_profile_id = id;
+            saveSettings();
+          }
         }
         request->redirect("/battery");
         return;

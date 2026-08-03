@@ -46,6 +46,15 @@
             </div>
         </div>
 
+        <div class="panel">
+            <h3>Battery pack</h3>
+            <form method="post">
+                <label class="flabel" for="bp">Pack profile</label>
+                <select id="bp" name="battery_profile" onchange="this.form.submit()">%BATTERY_PROFILE_OPTIONS%</select>
+            </form>
+            %BATTERY_REPORT_ROWS%
+        </div>
+
         <div class="actions">
             <form method="post">
                 <input type="hidden" name="reset_stats">

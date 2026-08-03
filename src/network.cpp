@@ -106,15 +106,16 @@ String generateOwieStatusJson() {
     out.concat("<tr>");
   }
 
+  // Values are sent as bare numbers (no unit suffix) so the client owns
+  // formatting. This matches what templateProcessor() emits for the same
+  // keys; units live in the page markup, outside the updated elements.
   status["TOTAL_VOLTAGE"] =
-      String(relay->getTotalVoltageMillivolts() / 1000.0, 2) + "v";
-  status["CURRENT_AMPS"] =
-      String(relay->getCurrentMilliamps() / 1000.0, 1) + " Amps";
-  status["BMS_SOC"] = String(relay->getBmsReportedSOC()) + "%";
-  status["OVERRIDDEN_SOC"] = String(relay->getOverriddenSOC()) + "%";
-  status["USED_CHARGE_MAH"] = String(relay->getUsedChargeMah()) + " mAh";
-  status["REGENERATED_CHARGE_MAH"] =
-      String(relay->getRegeneratedChargeMah()) + " mAh";
+      String(relay->getTotalVoltageMillivolts() / 1000.0, 2);
+  status["CURRENT_AMPS"] = String(relay->getCurrentMilliamps() / 1000.0, 1);
+  status["BMS_SOC"] = String(relay->getBmsReportedSOC());
+  status["OVERRIDDEN_SOC"] = String(relay->getOverriddenSOC());
+  status["USED_CHARGE_MAH"] = String(relay->getUsedChargeMah());
+  status["REGENERATED_CHARGE_MAH"] = String(relay->getRegeneratedChargeMah());
   status["UPTIME"] = uptimeString();
   status["CELL_VOLTAGE_TABLE"] = out;
   status["TEMPERATURE_TABLE"] = getTempString();

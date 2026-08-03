@@ -279,7 +279,39 @@ body.owie-status {
     font-family: var(--mono);
     font-size: .72rem;
     color: var(--faint);
-    margin-top: 8px;
+    margin-top: 0;
+}
+.owie-status .unit {
+    color: var(--faint);
+    font-size: .55em;
+    font-weight: 600;
+}
+.owie-status .soc-charge .volts { color: var(--muted); }
+.owie-status .soc-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+}
+.owie-status .spark {
+    width: 130px;
+    height: 28px;
+    flex: none;
+}
+.owie-status .spark polyline {
+    fill: none;
+    stroke: var(--cyan);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+}
+.owie-status .spark.charging polyline { stroke: var(--good); }
+.owie-status .spark line {
+    stroke: var(--line);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
 }
 
 /* --- stat grid --- */

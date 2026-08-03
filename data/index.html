@@ -22,27 +22,33 @@
             <div class="soc-top">
                 <div>
                     <div class="soc-label">State of charge</div>
-                    <div class="soc-big" id="OVERRIDDEN_SOC">%OVERRIDDEN_SOC%%%</div>
+                    <div class="soc-big"><span id="OVERRIDDEN_SOC">%OVERRIDDEN_SOC%</span><span class="unit">%%</span></div>
                 </div>
                 <div class="soc-charge" id="chargeState">
-                    <b id="CURRENT_AMPS">%CURRENT_AMPS% Amps</b><br>
-                    <span id="TOTAL_VOLTAGE">%TOTAL_VOLTAGE%v</span>
+                    <div class="amps"><b id="CURRENT_AMPS">%CURRENT_AMPS%</b><span class="unit"> A</span></div>
+                    <div class="volts"><span id="TOTAL_VOLTAGE">%TOTAL_VOLTAGE%</span><span class="unit"> V</span></div>
                 </div>
             </div>
             <div class="meter">
                 <div class="meter-fill" id="socFill"></div>
             </div>
-            <div class="soc-sub">BMS reports <span id="BMS_SOC">%BMS_SOC%%%</span></div>
+            <div class="soc-foot">
+                <span class="soc-sub">BMS reports <span id="BMS_SOC">%BMS_SOC%</span>%%</span>
+                <svg class="spark" id="curSpark" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true">
+                    <line id="curZero" x1="0" y1="14" x2="120" y2="14"></line>
+                    <polyline id="curLine" points=""></polyline>
+                </svg>
+            </div>
         </div>
 
         <div class="stats">
             <div class="stat">
                 <div class="k">Used charge</div>
-                <div class="v" id="USED_CHARGE_MAH">%USED_CHARGE_MAH% mAh</div>
+                <div class="v"><span id="USED_CHARGE_MAH">%USED_CHARGE_MAH%</span><span class="unit"> mAh</span></div>
             </div>
             <div class="stat">
                 <div class="k">Regenerated</div>
-                <div class="v" id="REGENERATED_CHARGE_MAH">%REGENERATED_CHARGE_MAH% mAh</div>
+                <div class="v"><span id="REGENERATED_CHARGE_MAH">%REGENERATED_CHARGE_MAH%</span><span class="unit"> mAh</span></div>
             </div>
             <div class="stat">
                 <div class="k">Uptime</div>
@@ -78,6 +84,7 @@
     <script>
         window.addEventListener('DOMContentLoaded', function () {
             var livePill = document.getElementById('livePill');
+            var samples = [];
 
             function num(s) {
                 var n = parseFloat(s);
@@ -124,10 +131,39 @@
                 }
             }
 
+            function paintSpark() {
+                var amps = num(document.getElementById('CURRENT_AMPS').textContent);
+                if (amps === null) return;
+                samples.push(amps);
+                if (samples.length > 60) samples.shift();
+                var line = document.getElementById('curLine');
+                var zero = document.getElementById('curZero');
+                var n = samples.length;
+                if (n < 2) { line.setAttribute('points', ''); return; }
+                var lo = Math.min.apply(null, samples);
+                var hi = Math.max.apply(null, samples);
+                // Keep zero in range so the baseline stays meaningful.
+                if (lo > 0) lo = 0;
+                if (hi < 0) hi = 0;
+                var span = (hi - lo) || 1;
+                var W = 120, H = 28, pad = 2;
+                function y(v) { return (pad + (H - 2 * pad) * (hi - v) / span); }
+                var pts = '';
+                for (var i = 0; i < n; i++) {
+                    pts += (W * i / (n - 1)).toFixed(1) + ',' + y(samples[i]).toFixed(1) + ' ';
+                }
+                line.setAttribute('points', pts.replace(/ $/, ''));
+                var zy = y(0).toFixed(1);
+                zero.setAttribute('y1', zy);
+                zero.setAttribute('y2', zy);
+                document.getElementById('curSpark').classList.toggle('charging', amps < 0);
+            }
+
             function refresh() {
                 paintGauge();
                 paintCharge();
                 highlightCells();
+                paintSpark();
             }
 
             function poll() {

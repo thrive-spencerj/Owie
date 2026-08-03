@@ -64,15 +64,15 @@ String batteryProfileOptions() {
   String opts;
   opts.reserve(256);
   for (uint32_t i = 0; i < BATTERY_PROFILE_COUNT; i++) {
-    opts.concat("<option value='");
+    opts.concat(PSTR("<option value='"));
     opts.concat(i);
-    opts.concat("'");
+    opts.concat('\'');
     if (i == Settings->battery_profile_id) {
-      opts.concat(" selected");
+      opts.concat(PSTR(" selected"));
     }
-    opts.concat(">");
+    opts.concat('>');
     opts.concat(BATTERY_PROFILES[i].label);
-    opts.concat("</option>");
+    opts.concat(PSTR("</option>"));
   }
   return opts;
 }
@@ -85,37 +85,37 @@ String batteryReportRows() {
   BatteryFuelGauge &gauge = relay->getBatteryFuelGauge();
   String out;
   out.reserve(384);
-  out.concat("<div class=\"kv\" style=\"margin-top:12px\">");
-  out.concat("<div class=\"row\"><span class=\"kk\">Capacity</span>"
-             "<span class=\"vv\">");
+  out.concat(PSTR("<div class=\"kv\" style=\"margin-top:12px\">"));
+  out.concat(PSTR("<div class=\"row\"><span class=\"kk\">Capacity</span>"
+                  "<span class=\"vv\">"));
   out.concat(prof.capacityMah);
-  out.concat("<span class=\"unit\"> mAh</span></span></div>");
+  out.concat(PSTR("<span class=\"unit\"> mAh</span></span></div>"));
 
-  out.concat("<div class=\"row\"><span class=\"kk\">Remaining</span>"
-             "<span class=\"vv\">");
+  out.concat(PSTR("<div class=\"row\"><span class=\"kk\">Remaining</span>"
+                  "<span class=\"vv\">"));
   const int32_t remaining = gauge.getRemainingMah(prof.capacityMah);
   if (remaining < 0) {
-    out.concat("&mdash;");
+    out.concat(PSTR("&mdash;"));
   } else {
     out.concat(remaining);
-    out.concat("<span class=\"unit\"> mAh</span>");
+    out.concat(PSTR("<span class=\"unit\"> mAh</span>"));
   }
-  out.concat("</span></div>");
+  out.concat(PSTR("</span></div>"));
 
-  out.concat("<div class=\"row\"><span class=\"kk\">State of health</span>"
-             "<span class=\"vv\">");
+  out.concat(PSTR("<div class=\"row\"><span class=\"kk\">State of health</span>"
+                  "<span class=\"vv\">"));
   const int32_t soh = gauge.getStateOfHealthPercent(prof.capacityMah);
   if (soh == -1) {
-    out.concat("learning&hellip;");
+    out.concat(PSTR("learning&hellip;"));
   } else if (soh < 0) {
-    out.concat("&mdash;");
+    out.concat(PSTR("&mdash;"));
   } else {
     out.concat(soh);
-    out.concat("<span class=\"unit\">&#37;</span>");  // &#37; == literal %
+    out.concat(PSTR("<span class=\"unit\">&#37;</span>"));  // &#37; == literal %
   }
-  out.concat("</span></div>");
+  out.concat(PSTR("</span></div>"));
 
-  out.concat("</div>");
+  out.concat(PSTR("</div>"));
   return out;
 }
 

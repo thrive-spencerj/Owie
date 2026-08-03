@@ -3,3 +3,8 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+webapp/owie.db*
+webapp/node_modules/
+webapp/frontend/node_modules/
+webapp/frontend/dist/

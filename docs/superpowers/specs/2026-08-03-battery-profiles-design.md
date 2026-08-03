@@ -28,8 +28,8 @@ work with it. The presets are therefore limited to compatible packs:
 |---|---|---|
 | Standard Li-ion (default) | — | unknown (0) |
 | OneWheel Pint (stock) | 15S1P VTC6 | 3000 mAh |
-| Quart | 15S1P 21700 | ~4000 mAh (spec 4.0–4.2 Ah) |
-| OneWheel+ XR (stock) | 15S2P, 324 Wh NMC | ~6000 mAh (derived, confirm) |
+| Quart | 15S1P 21700 | 4200 mAh |
+| OneWheel+ XR (stock) | 15S2P, 324 Wh NMC | 6000 mAh |
 
 Explicitly excluded as incompatible (different series count / voltage /
 controller — mostly VESC-based, not the Pint/XR BMS): GT (18S2P), GT S-Series
@@ -66,8 +66,8 @@ struct BatteryProfile {
 static const BatteryProfile BATTERY_PROFILES[] = {
   {"Standard Li-ion",       0},     // id 0 — default, == today's behavior
   {"OneWheel Pint (stock)", 3000},  // id 1
-  {"Quart",                 4000},  // id 2  (spec 4.0-4.2 Ah; confirm)
-  {"OneWheel+ XR (stock)",  6000},  // id 3  (derived from 324 Wh; confirm)
+  {"Quart",                 4200},  // id 2
+  {"OneWheel+ XR (stock)",  6000},  // id 3
 };
 ```
 
@@ -145,15 +145,13 @@ New native (`lib/bms`) unit tests, runnable via `pio test -e native`:
 - **SoH honesty** → the 0.40 span gate prevents a freshly-flashed board from
   showing an alarming low health number before it has cycled through a wide
   range.
-- **Capacity accuracy** → values are user-supplied / derived; all capacity
-  reports are only as good as those numbers. Quart is inherently a range
-  (4.0–4.2 Ah); XR is derived from watt-hours.
+- **Capacity accuracy** → values are user-supplied / derived. Quart's real
+  capacity varies with current draw (rated 4.2 Ah); XR (6000 mAh) is derived
+  from 324 Wh. Both are close-enough references for reporting, not exact gauges.
 - **Scope creep into the WIP gauge** → avoided entirely; the feature only adds
   read-only getters and never alters the SOC path.
 
 ## Open items
 
-- Confirm **Quart** (~4000 mAh; spec range 4.0–4.2 Ah) and **XR** (~6000 mAh,
-  derived from 324 Wh at ~54 V nominal — would be ~5850 at 55.5 V) capacities.
 - Decide later whether to add **Pint X** once BMS-protocol compatibility is
   confirmed.

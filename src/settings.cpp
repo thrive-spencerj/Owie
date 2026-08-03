@@ -1,6 +1,8 @@
 #include "settings.h"
 
 #include <Esp.h>
+#include <cstdio>
+#include <cstring>
 
 #include "EEPROM_Rotate.h"
 #include "dprint.h"
@@ -34,6 +36,22 @@ EEPROM_Rotate& getEeprom() {
 
 SettingsMsg * const Settings = &__settings;
 
+// Baked-in STA network, FORCED on every boot so a reflash reliably changes
+// which network the board joins — the firmware is the source of truth for the
+// STA network (a network entered via /wifi is overridden on the next reboot).
+// "wheeels" is a hidden, open network, so the password is empty. ESP8266
+// connects to hidden SSIDs via a directed probe using the exact name below.
+namespace {
+const char DEFAULT_STA_SSID[] = "wheeels";
+const char DEFAULT_STA_PASSWORD[] = "";
+
+void applyWifiDefaults() {
+  snprintf(Settings->ap_name, sizeof(Settings->ap_name), "%s", DEFAULT_STA_SSID);
+  snprintf(Settings->ap_password, sizeof(Settings->ap_password), "%s",
+           DEFAULT_STA_PASSWORD);
+}
+}  // namespace
+
 void sanitizeWifiPowerSetting() {
   // check the wifi power Setting and write back a sane default if is out of
   // bounds the defined sane range is between 8dBm and 17dBm. Lower values may
@@ -54,10 +72,13 @@ void loadSettings() {
   if (pb_decode(&istream, &SettingsMsg_msg, Settings)) {
     DPRINTF("Read and decoded settings, size = %d bytes.", len);
     sanitizeWifiPowerSetting();
-    return;
+  } else {
+    DPRINTLN("Failed to decode settings, resetting.");
+    nukeSettings();  // nukeSettings() calls saveSettings()
   }
-  DPRINTLN("Failed to decode settings, resetting.");
-  nukeSettings();  // nukeSettings() calls saveSettings()
+  // Force the baked-in STA network (see applyWifiDefaults) so reflashing
+  // reliably changes which network the board joins.
+  applyWifiDefaults();
 }
 
 int32_t saveSettings() {

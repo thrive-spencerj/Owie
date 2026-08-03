@@ -1,31 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- The HTML markup is based on the main page of Tasmota -->
 
 <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-        <title>Owie - Settings</title>
-        <link rel="stylesheet" href="styles.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+    <title>Owie - WiFi</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
-        <div style="text-align:left;display:inline-block;color:#eaeaea;min-width:340px;">
-                <div id="statusHeader" style="text-align:center;color:#eaeaea;margin-bottom:10px;">
-                        <h2>Owie Settings</h2>
-                        (%DISPLAY_AP_NAME%)
-                </div>
-                <form method="post">
-                        <p>WiFi Network <b>to connect to</b><br><input placeholder="Type or Select your WiFi Network"
-                                        value="%SSID%" name="s"></p>
-                        <p><label><b>WiFi Password</b></label><br><input type="password"
-                                        placeholder="Enter your WiFi Password" value="%PASS%" name="p"></p>
-                        <button>Save</button>
-                </form>
-                <p>
-                        <button onclick="history.back()">Back</button>
-                </p>
+<body class="owie-status">
+    <div class="shell">
+        <div class="subhead">
+            <a class="back" href="/dev_settings">&lsaquo; Developer settings</a>
+            <span class="ap">%DISPLAY_AP_NAME%</span>
         </div>
+        <h1 class="ptitle">WiFi</h1>
+
+        <form method="post">
+            <fieldset>
+                <legend>Join a network</legend>
+                <p class="note">Owie can also connect to your home WiFi as a client.</p>
+                <label class="flabel" for="ssid">Network to connect to</label>
+                <input id="ssid" placeholder="Type or select your WiFi network" value="%SSID%" name="s">
+                <label class="flabel" for="pass">Password</label>
+                <input id="pass" type="password" placeholder="Enter your WiFi password" value="%PASS%" name="p">
+            </fieldset>
+            <button class="btn primary">Save</button>
+        </form>
+    </div>
 </body>
 
 </html>

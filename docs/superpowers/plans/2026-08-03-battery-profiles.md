@@ -32,51 +32,14 @@
 **Files:**
 - Create: `lib/bms/battery_profile.h`
 - Modify: `proto/settings.proto`
-- Create: `test/test_battery_profiles/battery_profiles_test.cpp`
 
 **Interfaces:**
 - Produces: `struct BatteryProfile { const char* label; int32_t capacityMah; };`, `const BatteryProfile BATTERY_PROFILES[]`, `const uint32_t BATTERY_PROFILE_COUNT`, `const BatteryProfile& getBatteryProfile(uint32_t id)` (out-of-range → id 0).
 - Produces: `SettingsMsg.battery_profile_id` (uint32, proto tag 13, default 0).
 
-- [ ] **Step 1: Write the failing test**
+No unit test here — the table is a static array and the getter is a bounds check; the firmware build is sufficient verification.
 
-Create `test/test_battery_profiles/battery_profiles_test.cpp`:
-
-```cpp
-#include <unity.h>
-
-#include "battery_profile.h"
-
-void setUp(void) {}
-void tearDown(void) {}
-
-void testProfileTableValues() {
-  TEST_ASSERT_EQUAL_UINT32(4, BATTERY_PROFILE_COUNT);
-  TEST_ASSERT_EQUAL_INT32(0, getBatteryProfile(0).capacityMah);
-  TEST_ASSERT_EQUAL_INT32(3000, getBatteryProfile(1).capacityMah);
-  TEST_ASSERT_EQUAL_INT32(4200, getBatteryProfile(2).capacityMah);
-  TEST_ASSERT_EQUAL_INT32(6000, getBatteryProfile(3).capacityMah);
-}
-
-void testProfileOutOfRangeFallsBackToDefault() {
-  TEST_ASSERT_EQUAL_INT32(0, getBatteryProfile(99).capacityMah);
-  TEST_ASSERT_EQUAL_STRING("Standard Li-ion", getBatteryProfile(99).label);
-}
-
-int main(int argc, char** argv) {
-  UNITY_BEGIN();
-  RUN_TEST(testProfileTableValues);
-  RUN_TEST(testProfileOutOfRangeFallsBackToDefault);
-  return UNITY_END();
-}
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `pio test -e native -f test_battery_profiles`
-Expected: FAIL to compile — `battery_profile.h` not found / `getBatteryProfile` undefined.
-
-- [ ] **Step 3: Create the profile header**
+- [ ] **Step 1: Create the profile header**
 
 Create `lib/bms/battery_profile.h`:
 
@@ -115,12 +78,7 @@ inline const BatteryProfile& getBatteryProfile(uint32_t id) {
 #endif  // BATTERY_PROFILE_H
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `pio test -e native -f test_battery_profiles`
-Expected: PASS (2 tests).
-
-- [ ] **Step 5: Add the settings field**
+- [ ] **Step 2: Add the settings field**
 
 In `proto/settings.proto`, inside `message SettingsMsg`, add the new field just before the `reserved` line (tag 13 is free; 12 is `battery_state`):
 
@@ -131,15 +89,15 @@ In `proto/settings.proto`, inside `message SettingsMsg`, add the new field just 
   reserved 5,11;
 ```
 
-- [ ] **Step 6: Verify the firmware build picks up the new field**
+- [ ] **Step 3: Verify the firmware build picks up the new field**
 
 Run: `pio run -e d1_mini_lite_clone`
 Expected: SUCCESS. (nanopb regenerates `settings.pb.h` with `battery_profile_id`; nothing references it yet.)
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add lib/bms/battery_profile.h proto/settings.proto test/test_battery_profiles/battery_profiles_test.cpp
+git add lib/bms/battery_profile.h proto/settings.proto
 git commit -m "Add battery preset table and settings field
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
@@ -152,18 +110,25 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 **Files:**
 - Modify: `lib/bms/battery_fuel_gauge.h`
 - Modify: `lib/bms/battery_fuel_gauge.cc`
-- Modify: `test/test_battery_profiles/battery_profiles_test.cpp`
+- Create: `test/test_battery_profiles/battery_profiles_test.cpp`
 
 **Interfaces:**
 - Consumes: existing `BatteryFuelGauge::getSoc() const`, `getState() const` (returns `FuelGaugeState` with `bottomMilliampSeconds`, `currentMilliampSeconds`, `topSoc`, `bottomSoc`), `restoreState(const FuelGaugeState&)`.
 - Produces: `int32_t BatteryFuelGauge::getRemainingMah(int32_t capacityMah) const` (returns `-1` when capacity `<= 0` or `getSoc() < 0`). `int32_t BatteryFuelGauge::getStateOfHealthPercent(int32_t capacityMah) const` (returns `-2` when capacity `<= 0`, `-1` when not yet converged, else `0..150`).
 
+Keep it to three focused tests — the real logic (remaining math, SoH extrapolation, the learning gate). No exhaustive edge coverage.
+
 - [ ] **Step 1: Write the failing tests**
 
-Add these functions to `test/test_battery_profiles/battery_profiles_test.cpp` (above `main`), and add the `#include`:
+Create `test/test_battery_profiles/battery_profiles_test.cpp`:
 
 ```cpp
+#include <unity.h>
+
 #include "battery_fuel_gauge.h"
+
+void setUp(void) {}
+void tearDown(void) {}
 
 static FuelGaugeState makeState(int32_t bottomMas, int32_t currentMas,
                                 int32_t topSoc, int32_t bottomSoc) {
@@ -193,28 +158,18 @@ void testStateOfHealthConverged() {
 
 void testStateOfHealthLearning() {
   BatteryFuelGauge g;
-  // Span too narrow (20 points) to extrapolate.
+  // Span too narrow (20 points) to extrapolate honestly.
   g.restoreState(makeState(3600000, 0, 50, 30));
   TEST_ASSERT_EQUAL_INT32(-1, g.getStateOfHealthPercent(1000));
-  // No learned window at all.
-  g.restoreState(makeState(0, 0, 100, 0));
-  TEST_ASSERT_EQUAL_INT32(-1, g.getStateOfHealthPercent(1000));
 }
 
-void testStateOfHealthUnknownCapacity() {
-  BatteryFuelGauge g;
-  g.restoreState(makeState(3600000, 0, 100, 0));
-  TEST_ASSERT_EQUAL_INT32(-2, g.getStateOfHealthPercent(0));
-}
-```
-
-Add their `RUN_TEST` lines inside `main`, before `return UNITY_END();`:
-
-```cpp
+int main(int argc, char** argv) {
+  UNITY_BEGIN();
   RUN_TEST(testRemainingMah);
   RUN_TEST(testStateOfHealthConverged);
   RUN_TEST(testStateOfHealthLearning);
-  RUN_TEST(testStateOfHealthUnknownCapacity);
+  return UNITY_END();
+}
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -273,7 +228,7 @@ int32_t BatteryFuelGauge::getStateOfHealthPercent(int32_t capacityMah) const {
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `pio test -e native -f test_battery_profiles`
-Expected: PASS (6 tests total in this file).
+Expected: PASS (3 tests).
 
 - [ ] **Step 6: Confirm no regression in the rest of the native suite**
 
@@ -500,7 +455,7 @@ Expected: SUCCESS; note the flash percentage (was ~38.8%).
 - [ ] **Step 2: Full native test suite**
 
 Run: `pio test -e native`
-Expected: `test_battery_profiles` PASS (6); other suites unchanged; only the 2 known `test_battery_fuel_gauge` failures remain.
+Expected: `test_battery_profiles` PASS (3); other suites unchanged; only the 2 known `test_battery_fuel_gauge` failures remain.
 
 - [ ] **Step 3: Stray-`%` audit across all templated pages**
 

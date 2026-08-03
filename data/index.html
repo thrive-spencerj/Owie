@@ -1,126 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- The HTML markup is based on the main page of Tasmota -->
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
     <title>Owie - Status</title>
     <link rel="stylesheet" href="styles.css">
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            function reloadData() {
-                const xhr = new XMLHttpRequest();
-                xhr.addEventListener("load", function (evt) {
-                    var parsed = JSON.parse(evt.target.responseText);
-                    for (const key in parsed) {
-                        var el = document.getElementById(key);
-                        if (el) {
-                            el.innerHTML = parsed[key];
-                        }
-                    }
-                    setTimeout(reloadData, 100);
-                });
-                xhr.open("GET", "/autoupdate");
-                xhr.send();
-            }
-            reloadData();
-            const unlockBtn = document.getElementById("unlockButton");
-            if (!unlockBtn.dataset.locked) {
-                return;
-            }
-            unlockBtn.onclick = () => {
-                const xhr = new XMLHttpRequest();
-                xhr.open("GET", "/lock?unlock");
-                xhr.responseType = "text";
-                xhr.onload = () => {
-                    if (xhr.status === 200) {
-                        unlockBtn.innerHTML = "Unlocked! Restart your board to ride it.";
-                    } else {
-                        unlockBtn.innerHTML = "Error: " + xhr.status;
-                    }
-                };
-                unlockBtn.setAttribute("disabled", "1");
-                xhr.send();
-            };
-            unlockBtn.removeAttribute("style");
-        });
-    //# sourceURL=index.js
-    </script>
 </head>
 
-<body>
-    <div style="text-align:left;display:inline-block;color:#eaeaea;min-width:340px;">
-        <div id="statusHeader" style="text-align:center;color:#eaeaea;margin-bottom:10px;">
-            <h2>Owie Status</h2>
-            (%DISPLAY_AP_NAME%)
+<body class="owie-status">
+    <div class="shell">
+        <div class="topbar">
+            <div class="brand">
+                <span class="name">Owie</span>
+                <span class="ap">%DISPLAY_AP_NAME%</span>
+            </div>
+            <span class="pill live" id="livePill">live</span>
         </div>
-        <div id="content">
-            <table>
-                <tr>
-                    <th>Battery Voltage</th>
-                    <td id="TOTAL_VOLTAGE">%TOTAL_VOLTAGE%v</td>
-                </tr>
-                <tr>
-                    <th>Current</th>
-                    <td id="CURRENT_AMPS">%CURRENT_AMPS% Amps</td>
-                </tr>
-                <tr>
-                    <th>BMS reported SOC:</th>
-                    <td id="BMS_SOC">%BMS_SOC%%%</td>
-                </tr>
-                <tr>
-                    <th>Overridden SOC:</th>
-                    <td id="OVERRIDDEN_SOC">%OVERRIDDEN_SOC%%%</td>
-                </tr>
-                <tr>
-                    <th>Used charge:</th>
-                    <td id="USED_CHARGE_MAH">%USED_CHARGE_MAH% mAh</td>
-                </tr>
-                <tr>
-                    <th>Regen:</th>
-                    <td id="REGENERATED_CHARGE_MAH">%REGENERATED_CHARGE_MAH% mAh</td>
-                </tr>
-                <tr>
-                    <th>Uptime:</th>
-                    <td id="UPTIME">%UPTIME%</td>
-                </tr>
-                <tr>
-                    <th>Power cycles:</th>
-                    <td>%GRACEFUL_SHUTDOWN_COUNT%</td>
-                </tr>
-                <tr>
-                    <th>Cell voltages</th>
-                    <td>
-                        <table class="cell-voltages" id="CELL_VOLTAGE_TABLE">%CELL_VOLTAGE_TABLE%</table>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Battery/BMS Temps</th>
-                    <td>
-                        <table class="cell-voltages" id="TEMPERATURE_TABLE">%TEMPERATURE_TABLE%</table>
-                    </td>
-                </tr>
-            </table>
-            <hr>
-            <p></p>
-            <form action="/battery">
-                <button>Battery</button>
-            </form>
-            <p></p>
-            <form action="/settings">
-                <button>Settings</button>
-            </form>
-            <p></p>
-            <button style="display:none" id="unlockButton" data-locked="%IS_LOCKED%">
-                Unlock Board
+
+        <div class="soc">
+            <div class="soc-top">
+                <div>
+                    <div class="soc-label">State of charge</div>
+                    <div class="soc-big" id="OVERRIDDEN_SOC">%OVERRIDDEN_SOC%%%</div>
+                </div>
+                <div class="soc-charge" id="chargeState">
+                    <b id="CURRENT_AMPS">%CURRENT_AMPS% Amps</b><br>
+                    <span id="TOTAL_VOLTAGE">%TOTAL_VOLTAGE%v</span>
+                </div>
+            </div>
+            <div class="meter">
+                <div class="meter-fill" id="socFill"></div>
+            </div>
+            <div class="soc-sub">BMS reports <span id="BMS_SOC">%BMS_SOC%%%</span></div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="k">Used charge</div>
+                <div class="v" id="USED_CHARGE_MAH">%USED_CHARGE_MAH% mAh</div>
+            </div>
+            <div class="stat">
+                <div class="k">Regenerated</div>
+                <div class="v" id="REGENERATED_CHARGE_MAH">%REGENERATED_CHARGE_MAH% mAh</div>
+            </div>
+            <div class="stat">
+                <div class="k">Uptime</div>
+                <div class="v" id="UPTIME">%UPTIME%</div>
+            </div>
+            <div class="stat">
+                <div class="k">Power cycles</div>
+                <div class="v">%GRACEFUL_SHUTDOWN_COUNT%</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>Cell voltages</h3>
+            <table class="grid-cells" id="CELL_VOLTAGE_TABLE">%CELL_VOLTAGE_TABLE%</table>
+        </div>
+
+        <div class="panel">
+            <h3>Battery / BMS temperatures</h3>
+            <table class="grid-cells" id="TEMPERATURE_TABLE">%TEMPERATURE_TABLE%</table>
+        </div>
+
+        <div class="actions">
+            <a class="btn" href="/battery">Battery detail</a>
+            <a class="btn" href="/settings">Settings</a>
+            <button class="btn unlock" style="display:none" id="unlockButton" data-locked="%IS_LOCKED%">
+                Unlock board
             </button>
         </div>
-        <div id="version" style="text-align:right;font-size:11px;">
-            <hr>
-            <p style="color:#aaa;">Owie <span id="OWIE_version">%OWIE_version%</span></p>
-        </div>
+
+        <div class="foot">Owie <span id="OWIE_version">%OWIE_version%</span></div>
     </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', function () {
+            var livePill = document.getElementById('livePill');
+
+            function num(s) {
+                var n = parseFloat(s);
+                return isNaN(n) ? null : n;
+            }
+
+            function clampFrac(pct) {
+                if (pct < 0) return 0;
+                if (pct > 100) return 1;
+                return pct / 100;
+            }
+
+            function paintGauge() {
+                var fill = document.getElementById('socFill');
+                var soc = num(document.getElementById('OVERRIDDEN_SOC').textContent);
+                if (soc === null) return;
+                fill.style.setProperty('--soc', clampFrac(soc));
+                fill.classList.remove('warn', 'crit');
+                if (soc < 20) fill.classList.add('crit');
+                else if (soc < 50) fill.classList.add('warn');
+            }
+
+            function paintCharge() {
+                var amps = num(document.getElementById('CURRENT_AMPS').textContent);
+                var box = document.getElementById('chargeState');
+                // Positive current is discharge; negative is regen / charging.
+                box.classList.toggle('charging', amps !== null && amps < 0);
+            }
+
+            function highlightCells() {
+                var cells = document.querySelectorAll('#CELL_VOLTAGE_TABLE td');
+                var loIdx = -1, hiIdx = -1, lo = Infinity, hi = -Infinity;
+                cells.forEach(function (td, i) {
+                    td.classList.remove('lo', 'hi');
+                    var v = num(td.textContent);
+                    if (v === null || v <= 0) return;
+                    if (v < lo) { lo = v; loIdx = i; }
+                    if (v > hi) { hi = v; hiIdx = i; }
+                });
+                // Only flag a spread worth noticing (>30 mV between weakest and strongest).
+                if (loIdx >= 0 && hiIdx >= 0 && loIdx !== hiIdx && (hi - lo) > 0.03) {
+                    cells[loIdx].classList.add('lo');
+                    cells[hiIdx].classList.add('hi');
+                }
+            }
+
+            function refresh() {
+                paintGauge();
+                paintCharge();
+                highlightCells();
+            }
+
+            function poll() {
+                fetch('/autoupdate')
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        for (var key in data) {
+                            var el = document.getElementById(key);
+                            if (el) el.innerHTML = data[key];
+                        }
+                        livePill.textContent = 'live';
+                        livePill.classList.add('live');
+                        refresh();
+                    })
+                    .catch(function () {
+                        livePill.textContent = 'offline';
+                        livePill.classList.remove('live');
+                    })
+                    .then(function () { setTimeout(poll, 1000); });
+            }
+
+            refresh();
+            poll();
+
+            var unlockBtn = document.getElementById('unlockButton');
+            if (unlockBtn.dataset.locked) {
+                unlockBtn.onclick = function () {
+                    unlockBtn.setAttribute('disabled', '1');
+                    fetch('/lock?unlock')
+                        .then(function (r) {
+                            unlockBtn.textContent = r.ok
+                                ? 'Unlocked. Restart your board to ride.'
+                                : 'Error ' + r.status;
+                        })
+                        .catch(function () { unlockBtn.textContent = 'Connection error'; });
+                };
+                unlockBtn.removeAttribute('style');
+            }
+        });
+    </script>
 </body>
 
 </html>

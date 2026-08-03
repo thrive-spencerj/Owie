@@ -145,3 +145,30 @@ int32_t BatteryFuelGauge::getSoc() const {
                              ((float)(state_.currentMilliampSeconds)) /
                              ((float)(state_.bottomMilliampSeconds));
 }
+
+int32_t BatteryFuelGauge::getRemainingMah(int32_t capacityMah) const {
+  if (capacityMah <= 0) {
+    return -1;
+  }
+  const int32_t soc = getSoc();
+  if (soc < 0) {
+    return -1;
+  }
+  return capacityMah * soc / 100;
+}
+
+int32_t BatteryFuelGauge::getStateOfHealthPercent(int32_t capacityMah) const {
+  if (capacityMah <= 0) {
+    return -2;
+  }
+  const float spanFraction = (state_.topSoc - state_.bottomSoc) / 100.0f;
+  if (state_.bottomMilliampSeconds <= 0 || spanFraction < 0.40f) {
+    return -1;
+  }
+  const float learnedWindowMah = state_.bottomMilliampSeconds / 3600.0f;
+  const float fullUsableMah = learnedWindowMah / spanFraction;
+  int32_t soh = (int32_t)(fullUsableMah / capacityMah * 100.0f + 0.5f);
+  if (soh < 0) soh = 0;
+  if (soh > 150) soh = 150;
+  return soh;
+}

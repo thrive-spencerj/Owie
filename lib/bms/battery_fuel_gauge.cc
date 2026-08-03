@@ -1,5 +1,6 @@
 #include "battery_fuel_gauge.h"
 
+#include <algorithm>
 #include <cmath>
 
 #include "defer.h"

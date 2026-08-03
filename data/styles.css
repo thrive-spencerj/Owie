@@ -533,6 +533,83 @@ body.owie-status {
 }
 .owie-status .note { font-size: .85rem; color: var(--muted); margin: 0 0 10px; }
 
+/* --- monitor (live packet inspector) --- */
+.owie-status .mon-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.owie-status .pkt-head,
+.owie-status .pkt {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 4px 12px;
+    align-items: baseline;
+}
+.owie-status .pkt-head {
+    font-family: var(--mono);
+    font-size: .62rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 8px;
+}
+.owie-status .pkt-head span:last-child { grid-column: 1 / -1; }
+.owie-status .pkt {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+}
+.owie-status .pkt:last-child { border-bottom: 0; }
+.owie-status .pkt-id { font-family: var(--mono); color: var(--copper); font-weight: 600; }
+.owie-status .pkt-name { color: var(--ink); font-size: .92rem; }
+.owie-status .pkt-bytes {
+    grid-column: 1 / -1;
+    font-family: var(--mono);
+    font-size: .8rem;
+    color: var(--cyan);
+    word-break: break-all;
+    line-height: 1.5;
+}
+.owie-status .pkt-empty { color: var(--faint); font-size: .9rem; padding: 6px 0; }
+.owie-status .pkt-unknown:not(:empty),
+.owie-status .pkt-err:not(:empty) {
+    font-family: var(--mono);
+    font-size: .78rem;
+    margin-top: 10px;
+    word-break: break-all;
+}
+.owie-status .pkt-unknown { color: var(--muted); }
+.owie-status .pkt-err { color: var(--crit); }
+
+/* server-rendered stats table */
+.owie-status .pstats { overflow-x: auto; }
+.owie-status .pstats table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: .8rem;
+}
+.owie-status .pstats th {
+    text-align: left;
+    color: var(--faint);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: .62rem;
+    letter-spacing: .08em;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--line);
+}
+.owie-status .pstats td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .owie-status .pill.live::before { animation: none; }
     .owie-status .meter-fill { transition: none; }

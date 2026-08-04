@@ -26,7 +26,10 @@ uint32_t requestGeneration = 0;
 uint32_t lastPostMillis = 0;
 bool everPosted = false;
 // Static request buffer: headers + serialized body. Guarded by the single
-// in-flight request invariant.
+// in-flight request invariant. Writes to the socket always use
+// ASYNC_WRITE_FLAG_COPY so lwIP copies the bytes instead of holding a
+// pointer into this buffer, letting it be safely reused as soon as the
+// next request is built.
 char requestBuf[1024];
 
 // Frees the in-flight client outside of its own callbacks (deleting an
@@ -41,6 +44,11 @@ void scheduleClientFree() {
   c->onDisconnect(nullptr, nullptr);
   c->onError(nullptr, nullptr);
   c->onData(nullptr, nullptr);
+  // Synchronously abort so lwIP drops any unsent/unacked segments that may
+  // still reference requestBuf, since the deferred delete below leaves the
+  // pcb alive (and able to retransmit from requestBuf) until it runs. A
+  // no-op if the pcb is already gone (e.g. this ran from the error path).
+  c->close(true);
   TaskQueue.postOneShotTask([c]() { delete c; }, 0);
 }
 
@@ -112,7 +120,10 @@ void maybePost() {
 
   TelemetrySnapshot snapshot;
   fillSnapshot(&snapshot);
-  char body[768];
+  // Static: this is a recurring-task callback with a tight cont stack
+  // budget, and the single in-flight invariant (the client != nullptr guard
+  // above) guarantees only one maybePost() call builds a payload at a time.
+  static char body[768];
   const size_t bodyLen = buildTelemetryJson(body, sizeof(body), snapshot);
   if (bodyLen == 0) {
     return;
@@ -136,8 +147,11 @@ void maybePost() {
   }
 
   client = new AsyncClient();
-  client->onConnect([](void*, AsyncClient* c) { c->write(requestBuf); },
-                    nullptr);
+  client->onConnect(
+      [](void*, AsyncClient* c) {
+        c->write(requestBuf, strlen(requestBuf), ASYNC_WRITE_FLAG_COPY);
+      },
+      nullptr);
   client->onDisconnect([](void*, AsyncClient*) { scheduleClientFree(); },
                        nullptr);
   client->onError([](void*, AsyncClient*, err_t) { scheduleClientFree(); },

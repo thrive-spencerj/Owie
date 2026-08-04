@@ -18,24 +18,25 @@ export default function TimeSeries({
 }) {
   const el = useRef<HTMLDivElement>(null);
   const plot = useRef<uPlot | null>(null);
+  // Chart structure only depends on the series identities, not their data.
+  const seriesKey = series.map((s) => `${s.label}:${s.stroke}`).join("|");
+  const seriesRef = useRef(series);
+  seriesRef.current = series;
 
+  // Create/destroy the chart only when its structure changes.
   useEffect(() => {
     if (!el.current) return;
-    const data: uPlot.AlignedData = [
-      timestamps.map((t) => t / 1000),
-      ...series.map((s) => s.values),
-    ];
+    const defs = seriesRef.current;
     const opts: uPlot.Options = {
       width: el.current.clientWidth,
       height,
       series: [
         {},
-        ...series.map((s) => ({ label: s.label, stroke: s.stroke, width: 1.5 })),
+        ...defs.map((s) => ({ label: s.label, stroke: s.stroke, width: 1.5 })),
       ],
-      legend: { show: series.length > 1 },
+      legend: { show: defs.length > 1 },
     };
-    plot.current?.destroy();
-    plot.current = new uPlot(opts, data, el.current);
+    plot.current = new uPlot(opts, [[], ...defs.map(() => [])], el.current);
     const onResize = () => {
       if (el.current) plot.current?.setSize({ width: el.current.clientWidth, height });
     };
@@ -45,7 +46,17 @@ export default function TimeSeries({
       plot.current?.destroy();
       plot.current = null;
     };
-  }, [timestamps, series, height]);
+  }, [seriesKey, height]);
+
+  // Push data into the existing chart without rebuilding it.
+  useEffect(() => {
+    if (!plot.current) return;
+    const data: uPlot.AlignedData = [
+      timestamps.map((t) => t / 1000),
+      ...series.map((s) => s.values),
+    ];
+    plot.current.setData(data);
+  }, [timestamps, series]);
 
   return <div ref={el} />;
 }

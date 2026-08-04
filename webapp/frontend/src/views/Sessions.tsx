@@ -19,6 +19,8 @@ export default function Sessions() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [boardFilter, setBoardFilter] = useState("");
   const [kindFilter, setKindFilter] = useState("");
+  const [fromFilter, setFromFilter] = useState("");
+  const [toFilter, setToFilter] = useState("");
   const [sessions, setSessions] = useState<Session[]>([]);
   const [detail, setDetail] = useState<(Session & { samples: Sample[] }) | null>(null);
 
@@ -39,7 +41,14 @@ export default function Sessions() {
       .catch(console.error);
   }, [boards, boardFilter]);
 
-  const shown = sessions.filter((s) => !kindFilter || s.kind === kindFilter);
+  const fromTime = fromFilter ? new Date(fromFilter + "T00:00:00").getTime() : null;
+  const toTime = toFilter ? new Date(toFilter + "T23:59:59.999").getTime() : null;
+  const shown = sessions.filter(
+    (s) =>
+      (!kindFilter || s.kind === kindFilter) &&
+      (fromTime === null || s.started_at >= fromTime) &&
+      (toTime === null || s.started_at <= toTime),
+  );
   const nameOf = (chip: string) =>
     boards.find((b) => b.chip_id === chip)?.name ?? chip;
 
@@ -57,7 +66,17 @@ export default function Sessions() {
           <option value="">Rides + charges</option>
           <option value="ride">Rides</option>
           <option value="charge">Charges</option>
-        </select>
+        </select>{" "}
+        <input
+          type="date"
+          value={fromFilter}
+          onChange={(e) => setFromFilter(e.target.value)}
+        />{" "}
+        <input
+          type="date"
+          value={toFilter}
+          onChange={(e) => setToFilter(e.target.value)}
+        />
       </p>
       <div className="panel">
         <table className="sessions">

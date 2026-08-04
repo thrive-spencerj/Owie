@@ -13,6 +13,7 @@
 #include "data.h"
 #include "settings.h"
 #include "task_queue.h"
+#include "version.h"
 
 namespace {
 DNSServer dnsServer;
@@ -22,7 +23,7 @@ AsyncWebSocket ws("/rawdata");
 const String defaultPass("****");
 BmsRelay *relay;
 
-const String owie_version = "2.1.0-sj";
+const String owie_version = OWIE_VERSION;
 
 String renderPacketStatsTable() {
   String result(

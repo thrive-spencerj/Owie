@@ -6,6 +6,7 @@
 #include "packet.h"
 #include "settings.h"
 #include "task_queue.h"
+#include "telemetry.h"
 
 // UART RX is connected to the *BMS* White line
 // UART TX is connected to the *MB* White line
@@ -95,5 +96,6 @@ void bms_setup() {
 
   setupWifi();
   setupWebServer(relay);
+  setupTelemetry(relay);
   TaskQueue.postRecurringTask([]() { relay->loop(); });
 }

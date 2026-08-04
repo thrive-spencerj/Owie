@@ -112,6 +112,8 @@ class BmsRelay {
   }
   bool isBatteryOvercharged() { return last_status_byte_ & 8; }
 
+  uint8_t getLastStatusByte() { return last_status_byte_; }
+
   const PacketTracker& getPacketTracker() const { return packet_tracker_; }
 
   BatteryFuelGauge& getBatteryFuelGauge() { return battery_fuel_gauge_; }

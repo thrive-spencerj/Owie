@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchBoards, type Board, type Sample } from "../api";
 import { useLiveSamples } from "../live";
 
@@ -23,19 +23,30 @@ export default function Fleet() {
     return () => clearInterval(t);
   }, []);
 
+  const refetching = useRef(false);
+
   useLiveSamples((s) => {
     setNow(Date.now());
-    setBoards((prev) => {
-      const known = prev.some((b) => b.chip_id === s.chip_id);
-      if (!known) {
-        // New board appeared: refetch the full list for its name/metadata.
-        fetchBoards().then(setBoards).catch(console.error);
-        return prev;
+    const known = boards.some((b) => b.chip_id === s.chip_id);
+    if (!known) {
+      // New board appeared: refetch the full list for its name/metadata,
+      // at most one refetch in flight.
+      if (!refetching.current) {
+        refetching.current = true;
+        fetchBoards()
+          .then(setBoards)
+          .catch(console.error)
+          .finally(() => {
+            refetching.current = false;
+          });
       }
-      return prev.map((b) =>
+      return;
+    }
+    setBoards((prev) =>
+      prev.map((b) =>
         b.chip_id === s.chip_id ? { ...b, latest: s, last_seen: s.ts } : b,
-      );
-    });
+      ),
+    );
   });
 
   return (

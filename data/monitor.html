@@ -1,103 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- The HTML markup is based on the main page of Tasmota -->
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-    <title>Owie - BMS data monitor</title>
+    <title>Owie - BMS monitor</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
-    <div style="text-align:left;display:inline-block;color:#eaeaea;min-width:340px;">
-        <div id="statusHeader" style="text-align:center;color:#eaeaea;margin-bottom:10px;">
-            <h2>Owie BMS data monitor</h2>
-            (%DISPLAY_AP_NAME%)
+<body class="owie-status">
+    <div class="shell">
+        <div class="subhead">
+            <a class="back" href="/dev_settings">&lsaquo; Developer settings</a>
+            <span class="ap">%DISPLAY_AP_NAME%</span>
         </div>
-        <textarea readonly="1" id="term" cols="340" name="t1" wrap="off"></textarea>
-        <button id="startstop" onclick="connect();">Connect</button>
-        <p>
-            <button onclick="history.back()">Back</button>
-        </p>
-        %PACKET_STATS_TABLE%
+        <h1 class="ptitle">BMS monitor</h1>
+
+        <div class="mon-bar">
+            <span class="pill" id="connPill">connecting</span>
+            <button class="btn" id="connBtn" style="width:auto;padding:8px 16px">Connect</button>
+        </div>
+
+        <div class="panel">
+            <h3>Live packets</h3>
+            <div class="pkt-head">
+                <span>Type</span><span>Name</span><span>Bytes</span>
+            </div>
+            <div class="pkt-list" id="pktList"></div>
+            <div class="pkt-unknown" id="unknownRow"></div>
+            <div class="pkt-err" id="errLine"></div>
+        </div>
+
+        <div class="panel">
+            <h3>Packet statistics</h3>
+            <div class="pstats">%PACKET_STATS_TABLE%</div>
+        </div>
+
         <script>
-            let packets = [];
-            let lastError = '';
-            let unknownData = '';
-            const term = document.getElementById("term");
-            const button = document.getElementById('startstop');
-            let socket;
+            var packets = [];
+            var unknownData = '';
+            var lastError = '';
+            var socket;
+            // Friendly names for known BMS packet types. Note: the percent
+            // sign must never appear in this file (the server template
+            // processor treats it as a placeholder delimiter).
+            var NAMES = {
+                0: 'Status', 2: 'Cell voltages', 3: 'Battery charge',
+                4: 'Temperatures', 5: 'Current', 6: 'BMS serial', 11: 'Power-up'
+            };
+            var list = document.getElementById('pktList');
+            var unknownEl = document.getElementById('unknownRow');
+            var errEl = document.getElementById('errLine');
+            var pill = document.getElementById('connPill');
+            var btn = document.getElementById('connBtn');
 
-            function formatPacket(byteArray) {
+            function hex2(n) { return ('0' + n.toString(16)).slice(-2); }
+            function formatPacket(arr) {
                 var s = '';
-                byteArray.forEach((byte) => {
-                    s += ('0' + byte.toString(16)).slice(-2);
-                    s += ' ';
-                });
-                return s;
+                arr.forEach(function (b) { s += hex2(b) + ' '; });
+                return s.trim();
             }
 
-            function updateTerminal() {
-                let text = '';
-                for (let i = 0; i < packets.length; i++) {
-                    text += packets[i] || '';
-                    text += '\n';
+            function render() {
+                var rows = '';
+                for (var t = 0; t < packets.length; t++) {
+                    if (!packets[t]) continue;
+                    var name = NAMES[t] || ('Type ' + t);
+                    rows += '<div class="pkt"><span class="pkt-id">0x' + hex2(t) +
+                        '</span><span class="pkt-name">' + name +
+                        '</span><span class="pkt-bytes">' + packets[t] + '</span></div>';
                 }
-                term.value = (text + unknownData + lastError);
-            }
-
-            function stop() {
-                socket.close();
-                socket = undefined;
+                list.innerHTML = rows || '<div class="pkt-empty">Waiting for packets…</div>';
+                unknownEl.textContent = unknownData ? ('Unknown data: ' + unknownData) : '';
+                errEl.textContent = lastError;
             }
 
             function connect() {
-                socket = new WebSocket(`ws://${window.location.hostname}/rawdata`);
-                socket.binaryType = "arraybuffer";
+                socket = new WebSocket('ws://' + window.location.hostname + '/rawdata');
+                socket.binaryType = 'arraybuffer';
                 socket.onopen = function () {
-                    lastError = 'connected';
-                    updateTerminal();
-                    button.innerText = 'Stop';
-                    button.setAttribute('onclick', 'stop();');
-                }
+                    lastError = '';
+                    pill.textContent = 'connected';
+                    pill.classList.add('live');
+                    btn.textContent = 'Disconnect';
+                    render();
+                };
                 socket.onclose = function () {
-                    lastError = 'disconnected';
-                    updateTerminal();
-                    // Packets will get erased right after we reconnect.
+                    pill.textContent = 'disconnected';
+                    pill.classList.remove('live');
+                    // Packets are cleared so a reconnect starts fresh.
                     packets = [];
                     unknownData = '';
-                    button.innerText = 'Connect';
-                    button.setAttribute('onclick', 'connect();');
-                }
+                    btn.textContent = 'Connect';
+                    render();
+                };
+                socket.onerror = function () { lastError = 'WebSocket error'; render(); };
                 socket.onmessage = function (event) {
-                    if (!event.data instanceof ArrayBuffer) {
-                        lastError = "non-binary data";
-                        updateTerminal();
+                    if (!(event.data instanceof ArrayBuffer)) {
+                        lastError = 'non-binary data';
+                        render();
                         return;
                     }
-                    const data = new Uint8Array(event.data);
+                    var data = new Uint8Array(event.data);
                     if (data[0] == 0) {
-                        unknownData = `Unknown data: ${formatPacket(data.slice(1))}\n`;
-                        updateTerminal();
+                        unknownData = formatPacket(data.slice(1));
+                        render();
                         return;
                     }
                     if (data.length < 4) {
-                        lastError = `data is too short, length = ${data.length}`;
-                        updateTerminal();
+                        lastError = 'data too short, length = ' + data.length;
+                        render();
                         return;
                     }
                     packets[data[3]] = formatPacket(data);
-                    updateTerminal();
-                };
-
-                socket.onerror = function (error) {
-                    lastError = "websocket error";
-                    updateTerminal();
+                    render();
                 };
             }
+
+            function disconnect() {
+                if (socket) { socket.close(); socket = undefined; }
+            }
+
+            btn.onclick = function () { if (socket) { disconnect(); } else { connect(); } };
+            render();
             window.setTimeout(connect, 0);
-    //# sourceURL=monitor.js
         </script>
     </div>
 </body>

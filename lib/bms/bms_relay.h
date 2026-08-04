@@ -8,6 +8,7 @@
 
 #include "battery_fuel_gauge.h"
 #include "packet_tracker.h"
+#include "power_stats.h"
 
 class Packet;
 
@@ -115,6 +116,8 @@ class BmsRelay {
 
   BatteryFuelGauge& getBatteryFuelGauge() { return battery_fuel_gauge_; }
 
+  PowerStats& getPowerStats() { return power_stats_; }
+
  private:
   // BMS current units to milliamps.
   static constexpr int CURRENT_SCALER = 55;
@@ -146,6 +149,7 @@ class BmsRelay {
   int32_t now_millis_;
   PacketTracker packet_tracker_;
   BatteryFuelGauge battery_fuel_gauge_;
+  PowerStats power_stats_;
 
   void bmsStatusParser(Packet& p);
   void bmsSerialParser(Packet& p);

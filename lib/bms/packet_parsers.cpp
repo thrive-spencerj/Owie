@@ -39,6 +39,8 @@ void BmsRelay::currentParser(Packet& p) {
   // i.e. 1 in the data message below corresponds to 55 milliamps.
   current_milliamps_ = int16FromNetworkOrder(p.data()) * CURRENT_SCALER;
   battery_fuel_gauge_.updateCurrent(current_milliamps_, now_millis_);
+  power_stats_.updateCurrent(current_milliamps_, total_voltage_millivolts_,
+                             now_millis_);
 }
 
 void BmsRelay::bmsSerialParser(Packet& p) {
@@ -81,6 +83,7 @@ void BmsRelay::cellVoltageParser(Packet& p) {
   }
   total_voltage_millivolts_ = total_voltage;
   battery_fuel_gauge_.updateVoltage(min_voltage, now_millis_);
+  power_stats_.updateCells(cell_millivolts_, current_milliamps_);
 }
 
 void BmsRelay::temperatureParser(Packet& p) {

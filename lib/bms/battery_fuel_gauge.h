@@ -38,6 +38,15 @@ class BatteryFuelGauge {
   int32_t getSoc() const;
   int32_t getVoltageBasedSoc() const { return voltage_based_soc_; }
 
+  // Reporting helpers (read-only; do not affect SOC tracking).
+  // Remaining charge in mAh for the given nominal capacity, or -1 if
+  // unavailable (capacity unknown, or SOC not yet established).
+  int32_t getRemainingMah(int32_t capacityMah) const;
+  // State of health as a percentage for the given nominal capacity.
+  // -2 if capacity is unknown (0); -1 if the gauge has not yet observed a
+  // wide enough charge/discharge span to estimate honestly.
+  int32_t getStateOfHealthPercent(int32_t capacityMah) const;
+
   int32_t getMilliampSecondsDischarged() {
     return milliamp_seconds_discharged_;
   }

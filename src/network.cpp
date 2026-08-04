@@ -8,6 +8,7 @@
 
 #include "ArduinoJson.h"
 #include "async_ota.h"
+#include "battery_profile.h"
 #include "bms_relay.h"
 #include "data.h"
 #include "settings.h"
@@ -21,7 +22,7 @@ AsyncWebSocket ws("/rawdata");
 const String defaultPass("****");
 BmsRelay *relay;
 
-const String owie_version = "2.0.0-dev";
+const String owie_version = "2.1.0-sj";
 
 String renderPacketStatsTable() {
   String result(
@@ -59,6 +60,106 @@ String renderPacketStatsTable() {
   return result;
 }
 
+String batteryProfileOptions() {
+  String opts;
+  opts.reserve(256);
+  for (uint32_t i = 0; i < BATTERY_PROFILE_COUNT; i++) {
+    opts.concat(PSTR("<option value='"));
+    opts.concat(i);
+    opts.concat('\'');
+    if (i == Settings->battery_profile_id) {
+      opts.concat(PSTR(" selected"));
+    }
+    opts.concat('>');
+    opts.concat(BATTERY_PROFILES[i].label);
+    opts.concat(PSTR("</option>"));
+  }
+  return opts;
+}
+
+String batteryReportRows() {
+  const BatteryProfile &prof = getBatteryProfile(Settings->battery_profile_id);
+  if (prof.capacityMah <= 0) {
+    return String("");
+  }
+  BatteryFuelGauge &gauge = relay->getBatteryFuelGauge();
+  String out;
+  out.reserve(384);
+  out.concat(PSTR("<div class=\"kv\" style=\"margin-top:12px\">"));
+  out.concat(PSTR("<div class=\"row\"><span class=\"kk\">Capacity</span>"
+                  "<span class=\"vv\">"));
+  out.concat(prof.capacityMah);
+  out.concat(PSTR("<span class=\"unit\"> mAh</span></span></div>"));
+
+  out.concat(PSTR("<div class=\"row\"><span class=\"kk\">Remaining</span>"
+                  "<span class=\"vv\">"));
+  const int32_t remaining = gauge.getRemainingMah(prof.capacityMah);
+  if (remaining < 0) {
+    out.concat(PSTR("&mdash;"));
+  } else {
+    out.concat(remaining);
+    out.concat(PSTR("<span class=\"unit\"> mAh</span>"));
+  }
+  out.concat(PSTR("</span></div>"));
+
+  out.concat(PSTR("<div class=\"row\"><span class=\"kk\">State of health</span>"
+                  "<span class=\"vv\">"));
+  const int32_t soh = gauge.getStateOfHealthPercent(prof.capacityMah);
+  if (soh == -1) {
+    out.concat(PSTR("learning&hellip;"));
+  } else if (soh < 0) {
+    out.concat(PSTR("&mdash;"));
+  } else {
+    out.concat(soh);
+    out.concat(PSTR("<span class=\"unit\">&#37;</span>"));  // &#37; == literal %
+  }
+  out.concat(PSTR("</span></div>"));
+
+  out.concat(PSTR("</div>"));
+  return out;
+}
+
+String cellResistanceRows() {
+  PowerStats &ps = relay->getPowerStats();
+  String out;
+  out.reserve(512);
+  out.concat(PSTR("<div class=\"kv\" style=\"margin-top:12px\">"));
+  out.concat(PSTR("<div class=\"row\"><span class=\"kk\">Energy used</span>"
+                  "<span class=\"vv\">"));
+  out.concat(ps.getWattHoursUsed());
+  out.concat(PSTR("<span class=\"unit\"> Wh</span></span></div>"));
+  out.concat(PSTR("<div class=\"row\"><span class=\"kk\">Energy regenerated</span>"
+                  "<span class=\"vv\">"));
+  out.concat(ps.getWattHoursRegen());
+  out.concat(PSTR("<span class=\"unit\"> Wh</span></span></div></div>"));
+
+  if (!ps.hasResistanceEstimate()) {
+    out.concat(PSTR("<p class=\"note\">Per-cell resistance: learning&hellip; "
+                    "(ride to gather data)</p>"));
+    return out;
+  }
+  const int weakest = ps.getWeakestCell();
+  out.concat(PSTR("<h3 style=\"margin-top:16px\">Cell resistance (m&#8486;)</h3>"));
+  out.concat(PSTR("<table class=\"grid-cells\">"));
+  for (int r = 0; r < 3; r++) {
+    out.concat(PSTR("<tr>"));
+    for (int c = 0; c < 5; c++) {
+      const int idx = r * 5 + c;
+      const int32_t mo = ps.getCellMilliohm(idx);
+      out.concat(idx == weakest ? PSTR("<td class=\"lo\">") : PSTR("<td>"));
+      if (mo < 0) {
+        out.concat(PSTR("&mdash;"));
+      } else {
+        out.concat(mo);
+      }
+      out.concat(PSTR("</td>"));
+    }
+    out.concat(PSTR("</tr>"));
+  }
+  out.concat(PSTR("</table>"));
+  return out;
+}
+
 String uptimeString() {
   const unsigned long nowSecs = millis() / 1000;
   const int hrs = nowSecs / 3600;
@@ -82,8 +183,10 @@ String getTempString() {
   temps.reserve(256);
   temps.concat("<tr>");
   for (int i = 0; i < 5; i++) {
+    // BMS reports Celsius; display in Fahrenheit.
+    const int fahrenheit = thermTemps[i] * 9 / 5 + 32;
     temps.concat("<td>");
-    temps.concat(thermTemps[i]);
+    temps.concat(fahrenheit);
     temps.concat("</td>");
   }
   temps.concat("<tr>");
@@ -106,18 +209,22 @@ String generateOwieStatusJson() {
     out.concat("<tr>");
   }
 
+  // Values are sent as bare numbers (no unit suffix) so the client owns
+  // formatting. This matches what templateProcessor() emits for the same
+  // keys; units live in the page markup, outside the updated elements.
   status["TOTAL_VOLTAGE"] =
-      String(relay->getTotalVoltageMillivolts() / 1000.0, 2) + "v";
-  status["CURRENT_AMPS"] =
-      String(relay->getCurrentMilliamps() / 1000.0, 1) + " Amps";
-  status["BMS_SOC"] = String(relay->getBmsReportedSOC()) + "%";
-  status["OVERRIDDEN_SOC"] = String(relay->getOverriddenSOC()) + "%";
-  status["USED_CHARGE_MAH"] = String(relay->getUsedChargeMah()) + " mAh";
-  status["REGENERATED_CHARGE_MAH"] =
-      String(relay->getRegeneratedChargeMah()) + " mAh";
+      String(relay->getTotalVoltageMillivolts() / 1000.0, 2);
+  status["CURRENT_AMPS"] = String(relay->getCurrentMilliamps() / 1000.0, 1);
+  status["BMS_SOC"] = String(relay->getBmsReportedSOC());
+  status["OVERRIDDEN_SOC"] = String(relay->getOverriddenSOC());
+  status["USED_CHARGE_MAH"] = String(relay->getUsedChargeMah());
+  status["REGENERATED_CHARGE_MAH"] = String(relay->getRegeneratedChargeMah());
   status["UPTIME"] = uptimeString();
   status["CELL_VOLTAGE_TABLE"] = out;
   status["TEMPERATURE_TABLE"] = getTempString();
+  status["POWER_WATTS"] = String(relay->getTotalVoltageMillivolts() / 1000.0 *
+                                     relay->getCurrentMilliamps() / 1000.0,
+                                 0);
 
   serializeJson(status, jsonOutput);
   return jsonOutput;
@@ -178,6 +285,16 @@ String templateProcessor(const String &var) {
     return Settings->locking_enabled ? "1" : "";
   } else if (var == "PACKET_STATS_TABLE") {
     return renderPacketStatsTable();
+  } else if (var == "BATTERY_PROFILE_OPTIONS") {
+    return batteryProfileOptions();
+  } else if (var == "BATTERY_REPORT_ROWS") {
+    return batteryReportRows();
+  } else if (var == "POWER_WATTS") {
+    return String(relay->getTotalVoltageMillivolts() / 1000.0 *
+                      relay->getCurrentMilliamps() / 1000.0,
+                  0);
+  } else if (var == "CELL_RESISTANCE_ROWS") {
+    return cellResistanceRows();
   } else if (var == "CELL_VOLTAGE_TABLE") {
     const uint16_t *cellMillivolts = relay->getCellMillivolts();
     String out;
@@ -298,6 +415,15 @@ void setupWebServer(BmsRelay *bmsRelay) {
         } else if (request->getParam("reset_settings", true) != nullptr) {
           Settings->battery_state = BatteryStateMsg_init_default;
           saveSettings();
+        } else if (request->getParam("reset_power", true) != nullptr) {
+          relay->getPowerStats().reset();
+        } else if (request->getParam("battery_profile", true) != nullptr) {
+          uint32_t id =
+              request->getParam("battery_profile", true)->value().toInt();
+          if (id < BATTERY_PROFILE_COUNT) {
+            Settings->battery_profile_id = id;
+            saveSettings();
+          }
         }
         request->redirect("/battery");
         return;

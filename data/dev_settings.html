@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- The HTML markup is based on the main page of Tasmota -->
 
 <head>
     <meta charset="utf-8">
@@ -9,22 +8,17 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
-    <div style="text-align:left;display:inline-block;color:#eaeaea;min-width:340px;">
-        <div id="statusHeader" style="text-align:center;color:#eaeaea;margin-bottom:10px;">
-            <h2>Owie Developer Settings</h2>
-            (%DISPLAY_AP_NAME%)
-            <p></p>
-            <form action="/wifi">
-                <button>Wifi Configuration</button>
-            </form>
-            <p></p>
-            <form action="/monitor">
-                <button>Monitor BMS data</button>
-            </form>
-            <p>
-                <button onclick="history.back()">Back</button>
-            </p>
+<body class="owie-status">
+    <div class="shell">
+        <div class="subhead">
+            <a class="back" href="/settings">&lsaquo; Settings</a>
+            <span class="ap">%DISPLAY_AP_NAME%</span>
+        </div>
+        <h1 class="ptitle">Developer settings</h1>
+
+        <div class="actions">
+            <a class="btn" href="/wifi">WiFi configuration</a>
+            <a class="btn" href="/monitor">Monitor BMS data</a>
         </div>
     </div>
 </body>

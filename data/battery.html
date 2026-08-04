@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- The HTML markup is based on the main page of Tasmota -->
 
 <head>
     <meta charset="utf-8">
@@ -9,47 +8,72 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
-    <div style="text-align:left;display:inline-block;color:#eaeaea;min-width:340px;">
-        <div id="statusHeader" style="text-align:center;color:#eaeaea;margin-bottom:10px;">
-            <h2>Owie Battery</h2>
+<body class="owie-status">
+    <div class="shell">
+        <div class="subhead">
+            <a class="back" href="/">&lsaquo; Status</a>
+            <span class="ap">%DISPLAY_AP_NAME%</span>
         </div>
-        <table>
-            <tr>
-                <th>SOC</th>
-                <td>%OVERRIDDEN_SOC%%%</td>
-            </tr>
-            <tr>
-                <th>Voltage based SOC</th>
-                <td>%VOLTAGE_BASED_SOC%%%</td>
-            </tr>
-            <tr>
-                <th>Lowest Ah-tracked SOC</th>
-                <td>%BOTTOM_SOC%%%</td>
-            </tr>
-            <tr>
-                <th>Highest Ah-tracked SOC</th>
-                <td>%TOP_SOC%%%</td>
-            </tr>
-            <tr>
-                <th>Ah-tracked range size</th>
-                <td>%BOTTOM_MILLIAMP_HOURS% mAh</td>
-            </tr>
-            <tr>
-                <th>Current discharge depth</th>
-                <td>%CURRENT_MILLIAMP_HOURS% mAh</td>
-            </tr>
-        </table>
-        <p></p>
-        <form method="post">
-            <input type="hidden" name="reset_stats">
-            <button>Reset stats</button>
-        </form>
-        <p></p>
-        <form method="post">
-            <input type="hidden" name="reset_settings">
-            <button>Reset Settings</button>
-        </form>
+        <h1 class="ptitle">Battery detail</h1>
+
+        <div class="panel">
+            <h3>Fuel gauge</h3>
+            <div class="kv">
+                <div class="row">
+                    <span class="kk">State of charge</span>
+                    <span class="vv">%OVERRIDDEN_SOC%<span class="unit">%%</span></span>
+                </div>
+                <div class="row">
+                    <span class="kk">Voltage-based SOC</span>
+                    <span class="vv">%VOLTAGE_BASED_SOC%<span class="unit">%%</span></span>
+                </div>
+                <div class="row">
+                    <span class="kk">Lowest Ah-tracked SOC</span>
+                    <span class="vv">%BOTTOM_SOC%<span class="unit">%%</span></span>
+                </div>
+                <div class="row">
+                    <span class="kk">Highest Ah-tracked SOC</span>
+                    <span class="vv">%TOP_SOC%<span class="unit">%%</span></span>
+                </div>
+                <div class="row">
+                    <span class="kk">Ah-tracked range size</span>
+                    <span class="vv">%BOTTOM_MILLIAMP_HOURS%<span class="unit"> mAh</span></span>
+                </div>
+                <div class="row">
+                    <span class="kk">Current discharge depth</span>
+                    <span class="vv">%CURRENT_MILLIAMP_HOURS%<span class="unit"> mAh</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>Battery pack</h3>
+            <form method="post">
+                <label class="flabel" for="bp">Pack profile</label>
+                <select id="bp" name="battery_profile" onchange="this.form.submit()">%BATTERY_PROFILE_OPTIONS%</select>
+            </form>
+            %BATTERY_REPORT_ROWS%
+        </div>
+
+        <div class="panel">
+            <h3>Power &amp; cell health</h3>
+            %CELL_RESISTANCE_ROWS%
+            <form method="post" style="margin-top:12px">
+                <input type="hidden" name="reset_power">
+                <button class="btn">Reset energy &amp; resistance</button>
+            </form>
+        </div>
+
+        <div class="actions">
+            <form method="post">
+                <input type="hidden" name="reset_stats">
+                <button class="btn">Reset charge stats</button>
+            </form>
+            <form method="post">
+                <input type="hidden" name="reset_settings">
+                <button class="btn">Reset saved battery state</button>
+            </form>
+        </div>
     </div>
 </body>
 

@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- The HTML markup is based on the main page of Tasmota -->
 
 <head>
   <meta charset="utf-8">
@@ -10,11 +9,12 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
-  <div style="text-align:left;display:inline-block;color:#eaeaea;min-width:340px;">
-    <div id="statusHeader" style="text-align:center;color:#eaeaea;margin-bottom:10px;">
-      <h2>Success - rebooting...</h2>
-      <h2>IMPORTANT: keep the board powered on until Owie WiFi becomes available again!</h2>
+<body class="owie-status">
+  <div class="shell">
+    <div class="panel center">
+      <h2 class="status-title ok">Update successful</h2>
+      <p class="note">Rebooting now. <b>Keep the board powered on</b> until the Owie WiFi
+        network becomes available again, then this page will reload on its own.</p>
     </div>
   </div>
 </body>

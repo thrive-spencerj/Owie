@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- The HTML markup is based on the main page of Tasmota -->
 
 <head>
   <meta charset="utf-8">
@@ -9,45 +8,49 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
-  <div style="text-align:left;display:inline-block;color:#eaeaea;min-width:340px;">
-    <div id="statusHeader" style="text-align:center;color:#eaeaea;margin-bottom:10px;">
-      <h2>Owie Settings</h2>
-      (%DISPLAY_AP_NAME%)
+<body class="owie-status">
+  <div class="shell">
+    <div class="subhead">
+      <a class="back" href="/">&lsaquo; Status</a>
+      <span class="ap">%DISPLAY_AP_NAME%</span>
     </div>
+    <h1 class="ptitle">Settings</h1>
+
     <form method="post" action="/settings" id="settingsForm">
       <fieldset>
-        <legend>WiFi options:</legend>
-        <p>Owie WiFi network name override:<br><input placeholder="WiFi network name" value="%AP_SELF_NAME%"
-            name="apselfname"></p>
-        <p>Password:<br><input placeholder="Between 8 and 31 characters" value="%AP_PASSWORD%" name="pw"></p>
-        <p>Power (dBm):<br>
-          <select value="%WIFI_POWER%" name="wifipower">
-            %WIFI_POWER_OPTIONS%
-          </select>
+        <legend>Owie WiFi</legend>
+        <label class="flabel" for="apselfname">Network name override</label>
+        <input id="apselfname" placeholder="WiFi network name" value="%AP_SELF_NAME%" name="apselfname">
+        <label class="flabel" for="pw">Password</label>
+        <input id="pw" placeholder="Between 8 and 31 characters" value="%AP_PASSWORD%" name="pw">
+        <label class="flabel" for="wifipower">Transmit power (dBm)</label>
+        <select id="wifipower" value="%WIFI_POWER%" name="wifipower">
+          %WIFI_POWER_OPTIONS%
+        </select>
       </fieldset>
+
       <fieldset>
-        <legend>Board locking:</legend>
-        <p id="lockingMsg"></p>
-        <button onclick="toggleArming(this)" id="armBtn" style="display:none" data-canenable="%CAN_ENABLE_LOCKING%"
-          data-enabled="%LOCKING_ENABLED%">
+        <legend>Board locking</legend>
+        <p class="note" id="lockingMsg"></p>
+        <button class="btn" onclick="toggleArming(this)" id="armBtn" style="display:none"
+          data-canenable="%CAN_ENABLE_LOCKING%" data-enabled="%LOCKING_ENABLED%">
           Disabled
         </button>
       </fieldset>
+
       <fieldset>
-        <legend>Firmware Update:</legend>
+        <legend>Firmware update</legend>
+        <p class="note">Select a firmware file to flash it over WiFi.</p>
         <input id="updInput" type="file" name="firmware" accept=".bin,.bin.gz">
       </fieldset>
-      <hr>
-      <button>Save</button>
+
+      <button class="btn primary">Save settings</button>
     </form>
-    <p></p>
-    <form action="/dev_settings">
-      <button>Developer Settings</button>
-    </form>
-    <p>
-      <button onclick="history.back()">Back</button>
-    </p>
+
+    <div class="actions" style="margin-top:14px">
+      <a class="btn" href="/dev_settings">Developer settings</a>
+    </div>
+
     <script>
       (() => {
         document.getElementById("updInput").onchange = () => {
@@ -95,7 +98,6 @@
           xhr.send();
         }
       })();
-  //# sourceURL=settings.js
     </script>
   </div>
 </body>

@@ -19,6 +19,8 @@ message SettingsMsg {
   bool locking_enabled = 10; // if the board locking functionality is enabled ('armed')
   BatteryStateMsg battery_state = 12;
   uint32 battery_profile_id = 13;
+  string telemetry_host = 14; // collector "host" or "host:port"; empty = unset
+  bool telemetry_enabled = 15;
 
   reserved 5,11;
 }

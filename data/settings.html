@@ -30,6 +30,20 @@
       </fieldset>
 
       <fieldset>
+        <legend>Telemetry</legend>
+        <div class="fgroup">
+          <label class="flabel" for="telemetryhost">Telemetry collector (host or host:port)</label>
+          <input type="text" id="telemetryhost" name="telemetryhost" value="%TELEMETRY_HOST%" maxlength="63" placeholder="192.168.1.50:8020">
+        </div>
+        <div class="fgroup">
+          <label class="flabel" for="telemetryenabled">
+            <input type="checkbox" id="telemetryenabled" name="telemetryenabled" value="1" data-enabled="%TELEMETRY_ENABLED%">
+            Send battery telemetry to the collector
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
         <legend>Board locking</legend>
         <p class="note" id="lockingMsg"></p>
         <button class="btn" onclick="toggleArming(this)" id="armBtn" style="display:none"
@@ -53,6 +67,9 @@
 
     <script>
       (() => {
+        const telemetryEnabled = document.getElementById("telemetryenabled");
+        telemetryEnabled.checked = !!telemetryEnabled.dataset.enabled;
+
         document.getElementById("updInput").onchange = () => {
           const form = document.getElementById("settingsForm");
           form.setAttribute("enctype", "multipart/form-data");

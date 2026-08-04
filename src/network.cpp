@@ -342,6 +342,10 @@ String templateProcessor(const String &var) {
       opts.concat("</option>");
     }
     return opts;
+  } else if (var == "TELEMETRY_HOST") {
+    return Settings->telemetry_host;
+  } else if (var == "TELEMETRY_ENABLED") {
+    return Settings->telemetry_enabled ? "1" : "";
   }
   return "<script>alert('UNKNOWN PLACEHOLDER')</script>";
 }
@@ -498,11 +502,24 @@ void setupWebServer(BmsRelay *bmsRelay) {
               "Wifi Power range MUST be between 8 (dBm) and 17 (dBm).");
           return;
         }
+        const auto telemetryHost = request->getParam("telemetryhost", true);
+        if (telemetryHost == nullptr ||
+            telemetryHost->value().length() >=
+                sizeof(Settings->telemetry_host)) {
+          request->send(400, "text/html",
+                        "Telemetry host must be under 64 characters.");
+          return;
+        }
+
         Settings->wifi_power = wifiPower->value().toInt();
         snprintf(Settings->ap_self_password, sizeof(Settings->ap_self_password),
                  "%s", apSelfPassword->value().c_str());
         snprintf(Settings->ap_self_name, sizeof(Settings->ap_self_name), "%s",
                  apSelfName->value().c_str());
+        snprintf(Settings->telemetry_host, sizeof(Settings->telemetry_host),
+                 "%s", telemetryHost->value().c_str());
+        Settings->telemetry_enabled =
+            request->getParam("telemetryenabled", true) != nullptr;
         saveSettingsAndRestartSoon();
         request->send(200, "text/html", "Settings saved, restarting...");
         return;

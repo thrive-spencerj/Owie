@@ -137,11 +137,12 @@ void maybePost() {
 
   const int n = snprintf(requestBuf, sizeof(requestBuf),
                          "POST /api/ingest HTTP/1.1\r\n"
-                         "Host: %s\r\n"
+                         "Host: %s:%u\r\n"
                          "Content-Type: application/json\r\n"
                          "Content-Length: %u\r\n"
                          "Connection: close\r\n\r\n%s",
-                         host, static_cast<unsigned>(bodyLen), body);
+                         host, static_cast<unsigned>(port),
+                         static_cast<unsigned>(bodyLen), body);
   if (n < 0 || static_cast<size_t>(n) >= sizeof(requestBuf)) {
     return;
   }

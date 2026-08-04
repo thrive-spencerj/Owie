@@ -504,11 +504,25 @@ void setupWebServer(BmsRelay *bmsRelay) {
           return;
         }
         const auto telemetryHost = request->getParam("telemetryhost", true);
-        if (telemetryHost == nullptr ||
+        bool telemetryHostInvalid =
+            telemetryHost == nullptr ||
             telemetryHost->value().length() >=
-                sizeof(Settings->telemetry_host)) {
-          request->send(400, "text/html",
-                        "Telemetry host must be under 64 characters.");
+                sizeof(Settings->telemetry_host);
+        if (!telemetryHostInvalid) {
+          const String &hostValue = telemetryHost->value();
+          for (unsigned int i = 0; i < hostValue.length(); i++) {
+            const unsigned char c = static_cast<unsigned char>(hostValue[i]);
+            if (c <= 0x20 || c == 0x7F) {
+              telemetryHostInvalid = true;
+              break;
+            }
+          }
+        }
+        if (telemetryHostInvalid) {
+          request->send(
+              400, "text/html",
+              "Telemetry host missing, too long, or contains invalid "
+              "characters.");
           return;
         }
 

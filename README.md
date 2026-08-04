@@ -19,6 +19,12 @@ This is a hobby project for its contributors and comes with absolutely no guaran
 - Supports future firmware updates via WiFi - no need to reopen your board.
 - Adds password protection to your board
 
+# Telemetry webapp
+
+The `webapp/` directory contains a self-hosted LAN dashboard that records
+telemetry from Owie boards — live cell voltages, ride/charge sessions, and
+battery health over time. See [webapp/README.md](webapp/README.md).
+
 # Installing Owie into your board
 
 ## Prerequisites:

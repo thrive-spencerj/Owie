@@ -46,6 +46,10 @@ export function startServer(opts: {
       const apiResponse = await handleApi(db, req, url);
       if (apiResponse) return apiResponse;
 
+      if (url.pathname.startsWith("/api/")) {
+        return Response.json({ error: "not found" }, { status: 404 });
+      }
+
       if (staticDir && req.method === "GET") {
         const path = url.pathname === "/" ? "/index.html" : url.pathname;
         let file = Bun.file(staticDir + path);

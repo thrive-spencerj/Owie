@@ -55,4 +55,12 @@ describe("server", () => {
     expect(got.sample.ts).toBeGreaterThan(0);
     ws.close();
   });
+
+  test("unknown /api/* routes return 404 JSON, not the SPA page", async () => {
+    const db = openDb(":memory:");
+    ({ server } = startServer({ db, port: 0 }));
+    const res = await fetch(`http://localhost:${server.port}/api/nope`);
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("not found");
+  });
 });

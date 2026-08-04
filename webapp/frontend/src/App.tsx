@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
+import BoardDetail from "./views/BoardDetail";
 import Fleet from "./views/Fleet";
-
-// Task 9 adds these imports and route branches:
-// import BoardDetail from "./views/BoardDetail";
-// import Sessions from "./views/Sessions";
+import Sessions from "./views/Sessions";
 
 function useHashRoute(): string {
   const [hash, setHash] = useState(location.hash || "#/");
@@ -19,11 +17,8 @@ export default function App() {
   const hash = useHashRoute();
   let view = <Fleet />;
   const boardMatch = hash.match(/^#\/board\/([^/]+)$/);
-  if (boardMatch) {
-    view = <p className="placeholder">Board view coming in Task 9 ({boardMatch[1]})</p>;
-  } else if (hash === "#/sessions") {
-    view = <p className="placeholder">Sessions view coming in Task 9</p>;
-  }
+  if (boardMatch) view = <BoardDetail chipId={boardMatch[1]} />;
+  else if (hash === "#/sessions") view = <Sessions />;
   return (
     <div className="app">
       <nav>

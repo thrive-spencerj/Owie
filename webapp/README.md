@@ -25,7 +25,17 @@ Tests: `bun test`
 
 ## Pointing boards at it
 
-Boards POST JSON to `http://<host>:8020/api/ingest`. The payload contract
-is defined in `docs/superpowers/specs/2026-08-03-owie-battery-telemetry-webapp-design.md`
-(§1) and `src/ingest.ts`. Firmware-side support is phase 2 — until then,
-`scripts/fake-owie.ts` demonstrates the contract.
+Boards running this firmware have a **Settings → Telemetry** section in the
+board's own web UI: a "Telemetry collector" field (`host` or `host:port`,
+port defaults to 8020) and an enable checkbox. Once enabled and the board is
+on your station WiFi, it POSTs a snapshot to `http://<host>:<port>/api/ingest`
+automatically — every 2 s while riding or charging, every 30 s while idle.
+
+No hardware handy? `scripts/fake-owie.ts` simulates one or more boards
+against this same endpoint for local development.
+
+The payload contract is defined in
+`docs/superpowers/specs/2026-08-03-owie-battery-telemetry-webapp-design.md`
+(§1) and `src/ingest.ts`, and is pinned by `tests/firmware-contract.test.ts`
+here and by the firmware's native serializer test
+(`test/test_telemetry_serializer`).

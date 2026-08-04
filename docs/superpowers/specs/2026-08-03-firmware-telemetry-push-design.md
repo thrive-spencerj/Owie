@@ -38,7 +38,8 @@ reserved):
 - `string telemetry_host = 14;` — `host` or `host:port` of the collector
   (port defaults to 8020, path fixed at `/api/ingest`). Storing host:port
   instead of a full URL keeps firmware parsing to one `:` split.
-  `proto/settings.options`: `SettingsMsg.telemetry_host max_size:63`.
+  `proto/settings.options`: `SettingsMsg.telemetry_host max_size:64`
+  (63 usable characters).
 - `bool telemetry_enabled = 15;`
 
 Settings page (`data/settings.html`): a "Telemetry" section with a collector
